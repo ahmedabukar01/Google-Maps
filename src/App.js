@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
 import {
   Box,
@@ -10,7 +11,7 @@ import {
   Text,
 } from '@chakra-ui/react'
 import { FaLocationArrow, FaTimes } from 'react-icons/fa'
-import { useJsApiLoader,GoogleMap, Marker, Autocomplete } from '@react-google-maps/api'
+import { useJsApiLoader,GoogleMap, Marker, Autocomplete, DirectionsRenderer } from '@react-google-maps/api'
 import { useRef, useState } from 'react'
 import { LoadScript } from '@react-google-maps/api'
 
@@ -24,7 +25,7 @@ function App() {
   const [distance, setDistance] = useState('')
 
   const originRef = useRef();
-  const distinationRef = useRef()
+  const destinationRef = useRef()
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAP_KEY,
@@ -39,12 +40,32 @@ function App() {
   // function to calculate distance and duration
 
   const calcMap = async () => {
-    if(originRef.current.value === '' || distinationRef.current.value === ''){
+    if(originRef.current.value === '' || destinationRef.current.value === ''){
       return
     } else {
 
+      const directionService = new google.maps.DirectionsService();
+      const result = await directionService.route({
+        origin: originRef.current.value,
+        destination: destinationRef.current.value,
+        travelMode: google.maps.TravelMode.DRIVING
+      })
+
+      console.log(result,'result')
+      setDirectionRes(result);
+      setDistance(result.routes[0].legs[0].distance.text)
+      setDuration(result.routes[0].legs[0].duration.text)
+
     }
 
+  }
+
+  function clearRoute(){
+    setDirectionRes(null)
+    setDuration('')
+    setDistance('')
+    destinationRef.current.value = ''
+    originRef.current.value = ''
   }
   
   return (
@@ -64,6 +85,7 @@ function App() {
       >
         {/* onPositionChanged property is available??? */}
         <Marker position={center}/> 
+        {directionRes && <DirectionsRenderer directions={directionRes}/>}
       </GoogleMap>
       <Box
         p={4}
@@ -79,22 +101,22 @@ function App() {
           <Input type='text' placeholder='Origin' ref={originRef}/>
           </Autocomplete>
           <Autocomplete>
-          <Input type='text' placeholder='Destination' ref={distinationRef}/>
+          <Input type='text' placeholder='Destination' ref={destinationRef}/>
           </Autocomplete>
           <ButtonGroup>
-            <Button colorScheme='pink' type='submit'>
+            <Button colorScheme='pink' type='submit' onClick={calcMap}>
               Calculate Route
             </Button>
             <IconButton
               aria-label='center back'
               icon={<FaTimes />}
-              onClick={() => alert(123)}
+              onClick={() => clearRoute()}
             />
           </ButtonGroup>
         </HStack>
         <HStack spacing={4} mt={4} justifyContent='space-between'>
-          <Text>Distance: </Text>
-          <Text>Duration: </Text>
+          <Text>Distance: {distance}</Text>
+          <Text>Duration: {duration}</Text>
           <IconButton
             aria-label='center back'
             icon={<FaLocationArrow />}
